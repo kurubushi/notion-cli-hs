@@ -6,7 +6,15 @@
 git clone git@github.com:kurubushi/notion-cli-hs.git
 cd notion-cli-hs
 stack install
-export PATH=$HOME/.local/bin:$PATH
+```
+
+## setup
+
+Create a config file `~/.notion-cli.conf`:
+
+```
+[Cookie]
+token_v2 = xxxxxxxxxx
 ```
 
 ## usage
@@ -14,7 +22,7 @@ export PATH=$HOME/.local/bin:$PATH
 Upload a file to S3 bucket.
 
 ```bash
-export NOTION_TOKEN_V2="xxxxxxxxxx"
+export PATH=$HOME/.local/bin/PATH:$PATH
 notion-cli-exec s3upload gongon.jpg
 ```
 

@@ -2,41 +2,63 @@
 
 module Main where
 
+import           Data.ConfigFile         (ConfigParser (..), emptyCP, get,
+                                          readfile)
+import           Data.Maybe              (fromMaybe)
 import           Notion.GetUploadFileUrl (getS3SignedPutURL, getS3URL,
                                           getUploadFileUrl)
 import           Options.Applicative
 import           S3.Put                  (putFile)
-import           System.Environment      (getEnv)
+import           System.Directory        (getHomeDirectory)
+import           System.Exit             (die)
 
 
-data Environment = Environment { tokenV2 :: String }
+data Environment = Environment { homeDir :: FilePath }
   deriving (Show, Eq)
 
 getEnvironment :: IO Environment
-getEnvironment = Environment <$> getEnv "NOTION_TOKEN_V2"
+getEnvironment = do
+  homeDir <- getHomeDirectory
+  return Environment{..}
 
 
-data Options = S3UploadOpts { s3UploadFilePath :: String }
+data Config = Config { tokenV2 :: String }
+  deriving (Show, Eq, Read)
+
+defaultConfigFile :: FilePath -> FilePath
+defaultConfigFile home = home ++ "/.notion-cli.conf"
+
+getConfig :: FilePath -> IO Config
+getConfig filePath = do
+  let handle e = die $ "invalid configration file\n" ++ show e
+  val <- readfile emptyCP{optionxform = id} filePath
+  either handle return $ do
+    cp <- val
+    tokenV2 <- get cp "Cookie" "token_v2"
+    return Config{..}
+
+
+data Options = S3UploadOpts { s3UploadConfigFilePath :: Maybe FilePath
+                            , s3UploadFilePath       :: FilePath }
   deriving (Show, Eq)
 
 s3UploadOptions :: Parser Options
 s3UploadOptions = S3UploadOpts
-                  <$> argument str (metavar "FILE")
+                  <$> (optional $ strOption (long "config-file" <> metavar "FILE" <> help "Set an alternative config file"))
+                  <*> (argument str (metavar "FILE"))
 
 options :: Parser Options
 options = subparser
-          $ command "s3upload" (info s3UploadOptions (progDesc "Upload a file to S3"))
+          $ command "s3upload" (withInfo s3UploadOptions "s3upload - Upload a file to S3")
 
-withInfo :: Parser a -> ParserInfo a
-withInfo opts = info (helper <*> opts) desc
-  where
-    desc = fullDesc
-           <> header "notion-cli - Notion CLI"
+withInfo :: Parser a -> String -> ParserInfo a
+withInfo opts desc = info (helper <*> opts) (header $ "notion-cli " ++ desc)
 
 
 exec :: Environment -> Options -> IO ()
 exec env (S3UploadOpts {..}) = do
-  s3URLs <- getUploadFileUrl (tokenV2 env) s3UploadFilePath
+  conf <- getConfig $ fromMaybe (defaultConfigFile . homeDir $ env) s3UploadConfigFilePath
+  s3URLs <- getUploadFileUrl (tokenV2 conf) s3UploadFilePath
   _ <- putFile (getS3SignedPutURL s3URLs) s3UploadFilePath
 
   putStrLn $ "File: " ++ s3UploadFilePath
@@ -45,5 +67,5 @@ exec env (S3UploadOpts {..}) = do
 main :: IO ()
 main = do
   env <- getEnvironment
-  opts <- execParser (withInfo options)
+  opts <- execParser (withInfo options "- Notion CLI")
   exec env opts
