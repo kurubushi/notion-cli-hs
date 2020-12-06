@@ -147,13 +147,7 @@ appendS3File token pageID url = do
                               , _opCommand = "update"
                               , _opArgs = defaultArgumentsObj { _argDisplaySource = Just url }
                               }
-  let updateImgOp = Operation { _opId = uuid
-                              , _opTable = "block"
-                              , _opPath = []
-                              , _opCommand = "update"
-                              , _opArgs = defaultArgumentsObj { _argType = Just "image" }
-                              }
-  let regImgOp = Operation { _opId = uuid
+  let regSrcOp = Operation { _opId = uuid
                            , _opTable = "block"
                            , _opPath = ["file_ids"]
                            , _opCommand = "listAfter"
@@ -163,8 +157,7 @@ appendS3File token pageID url = do
                                         , listOp
                                         , updatePropOp
                                         , updateFmtOp
-                                        , updateImgOp
-                                        , regImgOp
+                                        , regSrcOp
                                         ]
                      }
   req <- parseRequest endpoint
