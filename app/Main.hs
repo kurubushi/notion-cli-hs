@@ -2,16 +2,20 @@
 
 module Main where
 
+import Control.Monad (forM_)
+import           System.FilePath.Posix  (takeFileName)
 import           Data.ConfigFile         (ConfigParser (..), emptyCP, get,
                                           readfile)
 import           Data.Maybe              (fromMaybe)
 import           Notion.GetUploadFileUrl (getS3SignedPutURL, getS3URL,
                                           getUploadFileUrl)
+import           Notion.SubmitTransaction (appendRecord, appendS3File)
 import           Options.Applicative
 import           S3.Put                  (putFile)
 import           System.Directory        (getHomeDirectory)
 import           System.Exit             (die)
 
+type UUID = String
 
 data Environment = Environment { homeDir :: FilePath }
   deriving (Show, Eq)
@@ -40,19 +44,38 @@ getConfig filePath = do
 
 data Options = S3UploadOpts { s3UploadConfigFilePath :: Maybe FilePath
                             , s3UploadFilePath       :: FilePath }
+             | UploadOpts { uploadDatabaseID :: UUID
+                          , uploadRecordTitle :: Maybe String
+                          , uploadConfigFilePath :: Maybe FilePath
+                          , uploadFilePathes :: [FilePath]
+                          }
   deriving (Show, Eq)
 
 s3UploadOptions :: Parser Options
 s3UploadOptions = S3UploadOpts
-                  <$> (optional $ strOption (long "config-file" <> metavar "FILE" <> help "Set an alternative config file"))
-                  <*> (argument str (metavar "FILE"))
+                  <$> (optional . strOption $ long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
+                  <*> (argument str $ metavar "FILE" <> help "Select a file to upload")
+
+uploadOptions :: Parser Options
+uploadOptions = UploadOpts
+                  <$> (strOption $ long "database-uuid" <> metavar "UUID" <> help "Set the UUID of a database")
+                  <*> (optional $ strOption $ long "record-title" <> metavar "TITLE" <> help "Set the Title of a created new record")
+                  <*> (optional . strOption $ long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
+                  <*> (some . argument str $ metavar "FILES" <> help "Select files to upload")
 
 options :: Parser Options
 options = subparser
-          $ command "s3upload" (withInfo s3UploadOptions "s3upload - Upload a file to S3")
+          $ (  command "s3upload" (withInfo s3UploadOptions "s3upload" "Upload a file to S3")
+            <> command "upload" (withInfo uploadOptions "upload" "Upload a file to a database")
+            )
 
-withInfo :: Parser a -> String -> ParserInfo a
-withInfo opts desc = info (helper <*> opts) (header $ "notion-cli " ++ desc)
+withInfo :: Parser a -> String -> String -> ParserInfo a
+withInfo opts name desc = info
+                          (helper <*> opts)
+                          (fullDesc <> header desc' <> progDesc desc)
+  where
+    desc' = "notion-cli " ++ name' ++ "- " ++ desc
+    name' = if name == "" then name ++ " " else ""
 
 
 exec :: Environment -> Options -> IO ()
@@ -64,8 +87,24 @@ exec env (S3UploadOpts {..}) = do
   putStrLn $ "File: " ++ s3UploadFilePath
   putStrLn $ "URL: " ++ show (getS3URL s3URLs)
 
+exec env (UploadOpts {..}) = do
+  conf <- getConfig $ fromMaybe (defaultConfigFile . homeDir $ env) uploadConfigFilePath
+  let token = tokenV2 conf
+
+  let title = fromMaybe (takeFileName $ uploadFilePathes!!0) uploadRecordTitle
+  pageID <- appendRecord token uploadDatabaseID title
+
+  forM_ uploadFilePathes $ \filePath -> do
+    s3URLs <- getUploadFileUrl token filePath
+    let signedPutURL = getS3SignedPutURL s3URLs
+    let url = getS3URL s3URLs
+    _ <- putFile signedPutURL filePath
+    _ <- appendS3File token pageID url 
+    putStrLn $ "File: " ++ filePath
+    putStrLn $ "S3URL: " ++ show url
+
 main :: IO ()
 main = do
   env <- getEnvironment
-  opts <- execParser (withInfo options "- Notion CLI")
+  opts <- execParser (withInfo options "" "Notion CLI")
   exec env opts
