@@ -2,18 +2,18 @@
 
 module Main where
 
-import Control.Monad (forM_)
-import           System.FilePath.Posix  (takeFileName)
-import           Data.ConfigFile         (ConfigParser (..), emptyCP, get,
-                                          readfile)
-import           Data.Maybe              (fromMaybe)
-import           Notion.GetUploadFileUrl (getS3SignedPutURL, getS3URL,
-                                          getUploadFileUrl)
+import           Control.Monad            (forM_)
+import           Data.ConfigFile          (ConfigParser (..), emptyCP, get,
+                                           readfile)
+import           Data.Maybe               (fromMaybe)
+import           Notion.GetUploadFileUrl  (getS3SignedPutURL, getS3URL,
+                                           getUploadFileUrl)
 import           Notion.SubmitTransaction (appendRecord, appendS3File)
 import           Options.Applicative
-import           S3.Put                  (putFile)
-import           System.Directory        (getHomeDirectory)
-import           System.Exit             (die)
+import           S3.Put                   (putFile)
+import           System.Directory         (getHomeDirectory)
+import           System.Exit              (die)
+import           System.FilePath.Posix    (takeFileName)
 
 type UUID = String
 
@@ -44,10 +44,10 @@ getConfig filePath = do
 
 data Options = S3UploadOpts { s3UploadConfigFilePath :: Maybe FilePath
                             , s3UploadFilePath       :: FilePath }
-             | UploadOpts { uploadDatabaseID :: UUID
-                          , uploadRecordTitle :: Maybe String
+             | UploadOpts { uploadDatabaseID     :: UUID
+                          , uploadRecordTitle    :: Maybe String
                           , uploadConfigFilePath :: Maybe FilePath
-                          , uploadFilePathes :: [FilePath]
+                          , uploadFilePathes     :: [FilePath]
                           }
   deriving (Show, Eq)
 
@@ -99,7 +99,7 @@ exec env (UploadOpts {..}) = do
     let signedPutURL = getS3SignedPutURL s3URLs
     let url = getS3URL s3URLs
     _ <- putFile signedPutURL filePath
-    _ <- appendS3File token pageID url 
+    _ <- appendS3File token pageID url
     putStrLn $ "File: " ++ filePath
     putStrLn $ "S3URL: " ++ show url
 

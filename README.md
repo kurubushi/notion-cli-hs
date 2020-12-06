@@ -47,7 +47,7 @@ The `collectionId` is the UUID of the database.
 Upload files to the database:
 
 ```bash
-notion-cli-exec upload --title pinogon --database-uuid xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx pino.jpg gongon.jpg 
+notion-cli-exe upload --title pinogon --database-uuid xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx pino.jpg gongon.jpg 
 ```
 
 The command inserts a new record "pinogon" to the database and appends pino.jpg and gongon.jpg to the record page.
@@ -58,7 +58,7 @@ Check your database :+1:
 Upload a file to S3:
 
 ```bash
-notion-cli-exec s3upload gongon.jpg
+notion-cli-exe s3upload gongon.jpg
 ```
 
 response:
