@@ -20,7 +20,7 @@ type URL = String
 type Token = String
 type UUID = String
 
-data ReqBody = ReqBody { _reqOperations :: [Operation] }
+newtype ReqBody = ReqBody { _reqOperations :: [Operation] }
   deriving (Eq, Show, Generic)
 
 instance ToJSON ReqBody where

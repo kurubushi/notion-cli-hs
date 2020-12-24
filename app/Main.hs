@@ -17,7 +17,7 @@ import           System.FilePath.Posix    (takeFileName)
 
 type UUID = String
 
-data Environment = Environment { homeDir :: FilePath }
+newtype Environment = Environment { homeDir :: FilePath }
   deriving (Show, Eq)
 
 getEnvironment :: IO Environment
@@ -26,7 +26,7 @@ getEnvironment = do
   return Environment{..}
 
 
-data Config = Config { tokenV2 :: String }
+newtype Config = Config { tokenV2 :: String }
   deriving (Show, Eq, Read)
 
 defaultConfigFile :: FilePath -> FilePath
@@ -53,19 +53,19 @@ data Options = S3UploadOpts { s3UploadConfigFilePath :: Maybe FilePath
 
 s3UploadOptions :: Parser Options
 s3UploadOptions = S3UploadOpts
-                  <$> (optional . strOption $ long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
-                  <*> (argument str $ metavar "FILE" <> help "Select a file to upload")
+                  <$> (optional . strOption) (long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
+                  <*> argument str (metavar "FILE" <> help "Select a file to upload")
 
 uploadOptions :: Parser Options
 uploadOptions = UploadOpts
-                  <$> (strOption $ long "database-uuid" <> metavar "UUID" <> help "Set the UUID of a database")
-                  <*> (optional $ strOption $ long "record-title" <> metavar "TITLE" <> help "Set the Title of a created new record")
-                  <*> (optional . strOption $ long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
-                  <*> (some . argument str $ metavar "FILES" <> help "Select files to upload")
+                  <$> strOption (long "database-uuid" <> metavar "UUID" <> help "Set the UUID of a database")
+                  <*> (optional . strOption) (long "record-title" <> metavar "TITLE" <> help "Set the Title of a created new record")
+                  <*> (optional . strOption) (long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
+                  <*> (some . argument str) (metavar "FILES" <> help "Select files to upload")
 
 options :: Parser Options
 options = subparser
-          $ (  command "s3upload" (withInfo s3UploadOptions "s3upload" "Upload a file to S3")
+            (  command "s3upload" (withInfo s3UploadOptions "s3upload" "Upload a file to S3")
             <> command "upload" (withInfo uploadOptions "upload" "Upload a file to a database")
             )
 
@@ -79,7 +79,7 @@ withInfo opts name desc = info
 
 
 exec :: Environment -> Options -> IO ()
-exec env (S3UploadOpts {..}) = do
+exec env S3UploadOpts {..} = do
   conf <- getConfig $ fromMaybe (defaultConfigFile . homeDir $ env) s3UploadConfigFilePath
   s3URLs <- getUploadFileUrl (tokenV2 conf) s3UploadFilePath
   _ <- putFile (getS3SignedPutURL s3URLs) s3UploadFilePath
@@ -87,11 +87,11 @@ exec env (S3UploadOpts {..}) = do
   putStrLn $ "File: " ++ s3UploadFilePath
   putStrLn $ "URL: " ++ show (getS3URL s3URLs)
 
-exec env (UploadOpts {..}) = do
+exec env UploadOpts {..} = do
   conf <- getConfig $ fromMaybe (defaultConfigFile . homeDir $ env) uploadConfigFilePath
   let token = tokenV2 conf
 
-  let title = fromMaybe (takeFileName $ uploadFilePathes!!0) uploadRecordTitle
+  let title = fromMaybe (takeFileName . head  $ uploadFilePathes) uploadRecordTitle
   pageID <- appendRecord token uploadDatabaseID title
 
   forM_ uploadFilePathes $ \filePath -> do
