@@ -33,6 +33,7 @@ dependencies:
 - ConfigFile >= 1.1 && < 2
 - directory >= 1.3 && < 2
 - uuid >= 1.3 && < 2
+- unix-time >= 0.4 && < 1
 
 library:
   source-dirs: src

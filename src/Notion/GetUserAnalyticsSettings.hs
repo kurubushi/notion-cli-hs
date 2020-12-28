@@ -16,8 +16,8 @@ type UUID = String
 type URL = String
 type Token = String
 
-data ReqBody = ReqBody { _reqPlatform :: String
-                       } deriving (Eq, Show, Generic)
+newtype ReqBody = ReqBody { _reqPlatform :: String
+                          } deriving (Eq, Show, Generic)
 
 instance ToJSON ReqBody where
   toJSON = genericToJSON $ aesonDrop 4 snakeCase
@@ -25,8 +25,8 @@ instance ToJSON ReqBody where
 defaultReqBody :: ReqBody
 defaultReqBody = ReqBody { _reqPlatform = "web" }
 
-data ResBody = ResBody { _resUserId :: UUID
-                       } deriving (Eq, Show, Generic)
+newtype ResBody = ResBody { _resUserId :: UUID
+                          } deriving (Eq, Show, Generic)
 
 instance FromJSON ResBody where
   parseJSON = genericParseJSON $ aesonDrop 4 snakeCase
