@@ -90,57 +90,67 @@ getUnixTime = do
   unixtime <- liftIO $ UT.formatUnixTime "%s" time
   return . read . BC.unpack $ unixtime
 
+defaultProps :: UUID -> UUID -> Int -> [Operation]
+defaultProps blockID userID unixTime
+  = [ createdBy
+    , createdByTable
+    , createdAt
+    , editedBy
+    , editedByTable
+    , editedAt
+    ]
+  where
+    time = unixTime * 1000
+    set = defaultOperation { _opId = blockID, _opCommand = "set" }
+    createdBy = set { _opPath = ["created_by_id"]
+                    , _opArgs = ArgumentString userID
+                    }
+    createdByTable = set { _opPath = ["created_by_table"]
+                         , _opArgs = ArgumentString "notion_user"
+                         }
+    createdAt = set { _opPath = ["created_time"]
+                    , _opArgs = ArgumentInt time
+                    }
+    editedBy = set { _opPath = ["last_edited_by_id"]
+                   , _opArgs = ArgumentString userID
+                   }
+    editedByTable = set { _opPath = ["last_edited_by_table"]
+                        , _opArgs = ArgumentString "notion_user"
+                        }
+    editedAt = set { _opPath = ["last_edited_time"]
+                   , _opArgs = ArgumentInt time
+                   }
+
 appendRecord :: (MonadIO m, MonadThrow m) => Token -> UUID -> String -> m UUID
 appendRecord token collectionID recordTitle = do
-  uuid <- genUUID
-  time <- (* 1000) <$> getUnixTime
-  uid <- getUserID token
-  let setOp = defaultOperation { _opId = uuid, _opCommand = "set" }
-  let create = setOp { _opArgs = defaultArgumentsObj
-                                 { _argId = Just uuid
-                                 , _argType = Just "page"
-                                 , _argVersion = Just 1
-                                 , _argParentId = Just collectionID
-                                 , _argParentTable = Just "collection"
-                                 , _argAlive = Just True
-                                 }
-                     }
-  let title = setOp { _opPath = ["properties", "title"]
-                    , _opArgs = ArgumentsList [[recordTitle]]
-                    }
-  let createdBy = setOp { _opPath = ["created_by_id"]
-                        , _opArgs = ArgumentString uid
-                        }
-  let createdByTable = setOp { _opPath = ["created_by_table"]
-                             , _opArgs = ArgumentString "notion_user"
-                             }
-  let createdAt = setOp { _opPath = ["created_time"]
-                        , _opArgs = ArgumentInt time
-                        }
-  let editedBy = setOp { _opPath = ["last_edited_by_id"]
-                       , _opArgs = ArgumentString uid
-                       }
-  let editedByTable = setOp { _opPath = ["last_edited_by_table"]
-                            , _opArgs = ArgumentString "notion_user"
-                            }
-  let editedAt = setOp { _opPath = ["last_edited_time"]
-                       , _opArgs = ArgumentInt time
-                       }
+  blockID <- genUUID
+  userID <- getUserID token
+  unixTime <- getUnixTime
+  let set = defaultOperation { _opId = blockID, _opCommand = "set" }
+  let create = set { _opArgs = defaultArgumentsObj
+                               { _argId = Just blockID
+                               , _argType = Just "page"
+                               , _argVersion = Just 1
+                               , _argParentId = Just collectionID
+                               , _argParentTable = Just "collection"
+                               , _argAlive = Just True
+                               }
+                   }
+  let title = set { _opPath = ["properties", "title"]
+                  , _opArgs = ArgumentsList [[recordTitle]]
+                  }
   let body = ReqBody { _reqOperations = [ create
                                         , title
-                                        , createdBy
-                                        , createdByTable
-                                        , createdAt
-                                        , editedBy
-                                        , editedByTable
-                                        , editedAt] }
+                                        ]
+                                        ++ defaultProps blockID userID unixTime
+                     }
   req <- parseRequest endpoint
   let req' = setRequestMethod "POST"
            . setRequestHeader "Cookie" [BC.pack $ "token_v2=" ++ token]
            . setRequestBodyJSON body
            $ req
   _ <- httpNoBody req'
-  return uuid
+  return blockID
 
 getS3FileID :: URL -> UUID
 getS3FileID = takeWhile (/= '/') . drop (length s3URLPrefix)
@@ -155,12 +165,14 @@ getBlockType = conv . takeWhile (/= '/') . BC.unpack . defaultMimeLookup . T.pac
 
 appendS3File :: (MonadIO m, MonadThrow m) => Token -> UUID -> URL -> m UUID
 appendS3File token pageID url = do
-  uuid <- genUUID
+  blockID <- genUUID
+  userID <- getUserID token
+  unixTime <- getUnixTime
   let setOp = defaultOperation
-              { _opId = uuid
+              { _opId = blockID
               , _opCommand = "set"
               , _opArgs = defaultArgumentsObj
-                          { _argId = Just uuid
+                          { _argId = Just blockID
                           , _argType = Just $ getBlockType url
                           , _argVersion = Just 1
                           , _argParentId = Just pageID
@@ -172,22 +184,22 @@ appendS3File token pageID url = do
                { _opId = pageID
                , _opCommand = "listAfter"
                , _opPath = ["content"]
-               , _opArgs = defaultArgumentsObj { _argId = Just uuid }
+               , _opArgs = defaultArgumentsObj { _argId = Just blockID }
                }
   let updatePropOp = defaultOperation
-                     { _opId = uuid
+                     { _opId = blockID
                      , _opPath = ["properties"]
                      , _opCommand = "update"
                      , _opArgs = defaultArgumentsObj { _argSource = Just [[url]] }
                      }
   let updateFmtOp = defaultOperation
-                    { _opId = uuid
+                    { _opId = blockID
                     , _opPath = ["format"]
                     , _opCommand = "update"
                     , _opArgs = defaultArgumentsObj { _argDisplaySource = Just url }
                     }
   let regSrcOp = defaultOperation
-                 { _opId = uuid
+                 { _opId = blockID
                  , _opPath = ["file_ids"]
                  , _opCommand = "listAfter"
                  , _opArgs = defaultArgumentsObj { _argId = Just $ getS3FileID url }
@@ -198,6 +210,7 @@ appendS3File token pageID url = do
                                         , updateFmtOp
                                         , regSrcOp
                                         ]
+                                        ++ defaultProps blockID userID unixTime
                      }
   req <- parseRequest endpoint
   let req' = setRequestMethod "POST"
@@ -205,4 +218,4 @@ appendS3File token pageID url = do
            . setRequestBodyJSON body
            $ req
   _ <- httpNoBody req'
-  return uuid
+  return blockID
