@@ -6,7 +6,7 @@
 git clone git@github.com:kurubushi/notion-cli-hs.git
 cd notion-cli-hs
 stack install
-export PATH=$HOME/.local/bin/PATH:$PATH
+export PATH=$PATH:$HOME/.local/bin/
 ```
 
 ## setup
@@ -47,11 +47,21 @@ The `collectionId` is the UUID of the database.
 Upload files to the database:
 
 ```bash
-notion-cli-exe upload --title pinogon --database-uuid xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx pino.jpg gongon.jpg 
+notion-cli-exe upload --database-uuid xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --record-title pinogon pino.jpg gongon.jpg 
 ```
 
 The command inserts a new record "pinogon" to the database and appends pino.jpg and gongon.jpg to the record page.
 Check your database :+1:
+
+### Upload files to a page on Notion.
+
+Upload files to the page https://www.notion.so/user-name/page_title-xxxxxxxxyyyyxxxxyyyyxxxxxxxxxxxx
+
+```bash
+notion-cli-exe upload --page-uuid xxxxxxxx-yyyy-xxxx-yyyy-xxxxxxxxxxxx pino.jpg gongon.jpg 
+```
+
+The command appends pino.jpg and gongon.jpg to the page.
 
 ### Upload a file to S3 bucket.
 
