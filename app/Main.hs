@@ -42,9 +42,13 @@ getConfig filePath = do
     return Config{..}
 
 
+data ParentUUID = DBUUID UUID
+                | PageUUID UUID
+                deriving (Show, Eq)
+
 data Options = S3UploadOpts { s3UploadConfigFilePath :: Maybe FilePath
                             , s3UploadFilePath       :: FilePath }
-             | UploadOpts { uploadDatabaseID     :: UUID
+             | UploadOpts { uploadUUID           :: ParentUUID
                           , uploadRecordTitle    :: Maybe String
                           , uploadConfigFilePath :: Maybe FilePath
                           , uploadFilePathes     :: [FilePath]
@@ -56,12 +60,18 @@ s3UploadOptions = S3UploadOpts
                   <$> (optional . strOption) (long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
                   <*> argument str (metavar "FILE" <> help "Select a file to upload")
 
+parentUUID :: Parser ParentUUID
+parentUUID = dbUUID <|> pageUUID
+  where
+    dbUUID = DBUUID <$> strOption (long "database-uuid" <> metavar "UUID" <> help "Set the UUID of a database")
+    pageUUID = PageUUID <$> strOption (long "page-uuid" <> metavar "UUID" <> help "Set the UUID of a page")
+
 uploadOptions :: Parser Options
 uploadOptions = UploadOpts
-                  <$> strOption (long "database-uuid" <> metavar "UUID" <> help "Set the UUID of a database")
-                  <*> (optional . strOption) (long "record-title" <> metavar "TITLE" <> help "Set the Title of a created new record")
-                  <*> (optional . strOption) (long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
-                  <*> (some . argument str) (metavar "FILES" <> help "Select files to upload")
+                <$> parentUUID
+                <*> (optional . strOption) (long "record-title" <> metavar "TITLE" <> help "Set the Title of a created new record")
+                <*> (optional . strOption) (long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
+                <*> (some . argument str) (metavar "FILES" <> help "Select files to upload")
 
 options :: Parser Options
 options = subparser
@@ -91,15 +101,18 @@ exec env UploadOpts {..} = do
   conf <- getConfig $ fromMaybe (defaultConfigFile . homeDir $ env) uploadConfigFilePath
   let token = tokenV2 conf
 
-  let title = fromMaybe (takeFileName . head  $ uploadFilePathes) uploadRecordTitle
-  pageID <- appendRecord token uploadDatabaseID title
+  parentUUID <- case uploadUUID of
+                  DBUUID uuid -> do
+                    let title = fromMaybe (takeFileName . head  $ uploadFilePathes) uploadRecordTitle
+                    appendRecord token uuid title
+                  PageUUID uuid -> return uuid
 
   forM_ uploadFilePathes $ \filePath -> do
     s3URLs <- getUploadFileUrl token filePath
     let signedPutURL = getS3SignedPutURL s3URLs
     let url = getS3URL s3URLs
     _ <- putFile signedPutURL filePath
-    _ <- appendS3File token pageID url
+    _ <- appendS3File token parentUUID url
     putStrLn $ "File: " ++ filePath
     putStrLn $ "S3URL: " ++ show url
 
