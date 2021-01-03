@@ -55,10 +55,10 @@ Check your database :+1:
 
 ### Upload files to a page on Notion.
 
-Upload files to the page https://www.notion.so/user-name/page_title-xxxxxxxxyyyyxxxxyyyyxxxxxxxxxxxx
+Upload files to the page https://www.notion.so/user-name/page_title-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ```bash
-notion-cli-exe upload --page-uuid xxxxxxxx-yyyy-xxxx-yyyy-xxxxxxxxxxxx pino.jpg gongon.jpg 
+notion-cli-exe upload --page-url https://www.notion.so/user-name/page_title-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx pino.jpg gongon.jpg 
 ```
 
 The command appends pino.jpg and gongon.jpg to the page.

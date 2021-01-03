@@ -3,6 +3,7 @@
 module Main where
 
 import           Control.Monad            (forM_)
+import           Data.Char                (isHexDigit)
 import           Data.ConfigFile          (ConfigParser (..), emptyCP, get,
                                            readfile)
 import           Data.Maybe               (fromMaybe)
@@ -16,6 +17,21 @@ import           System.Exit              (die)
 import           System.FilePath.Posix    (takeFileName)
 
 type UUID = String
+type URL = String
+
+getUUID :: URL -> Maybe UUID
+getUUID = format . takeLastHex . dropID
+  where
+    dropID = takeWhile (/= '#')
+    takeLastHex = reverse . takeWhile isHexDigit . reverse
+    format st = if length st == 32
+                then Just $ slice  0  8 st ++ "-"
+                         ++ slice  8 12 st ++ "-"
+                         ++ slice 12 16 st ++ "-"
+                         ++ slice 16 20 st ++ "-"
+                         ++ slice 20 32 st
+                else Nothing
+    slice n m = take (m - n) . drop n
 
 newtype Environment = Environment { homeDir :: FilePath }
   deriving (Show, Eq)
@@ -44,6 +60,7 @@ getConfig filePath = do
 
 data ParentUUID = DBUUID UUID
                 | PageUUID UUID
+                | PageURL URL
                 deriving (Show, Eq)
 
 data Options = S3UploadOpts { s3UploadConfigFilePath :: Maybe FilePath
@@ -61,10 +78,11 @@ s3UploadOptions = S3UploadOpts
                   <*> argument str (metavar "FILE" <> help "Select a file to upload")
 
 parentUUID :: Parser ParentUUID
-parentUUID = dbUUID <|> pageUUID
+parentUUID = dbUUID <|> pageUUID <|> pageURL
   where
     dbUUID = DBUUID <$> strOption (long "database-uuid" <> metavar "UUID" <> help "Set the UUID of a database")
     pageUUID = PageUUID <$> strOption (long "page-uuid" <> metavar "UUID" <> help "Set the UUID of a page")
+    pageURL = PageURL <$> strOption (long "page-url" <> metavar "URL" <> help "Set the URL of a page")
 
 uploadOptions :: Parser Options
 uploadOptions = UploadOpts
@@ -106,6 +124,7 @@ exec env UploadOpts {..} = do
                     let title = fromMaybe (takeFileName . head  $ uploadFilePathes) uploadRecordTitle
                     appendRecord token uuid title
                   PageUUID uuid -> return uuid
+                  PageURL url -> maybe (die "the page URL is invalid") return (getUUID url)
 
   forM_ uploadFilePathes $ \filePath -> do
     s3URLs <- getUploadFileUrl token filePath
