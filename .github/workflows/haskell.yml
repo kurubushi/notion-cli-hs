@@ -29,7 +29,21 @@ jobs:
           ${{ runner.os }}-build-${{ env.cache-name }}-
           ${{ runner.os }}-build-
           ${{ runner.os }}-
-
+    - name: Install formatters
+      run: |
+        cabal update
+        cabal install cabal-fmt stylish-haskell
+        echo "$HOME/.cabal/bin" >> $GITHUB_PATH
+    - name: Check format
+      run: |
+        make fmt
+        if [[ -z "$(git status --porcelain)" ]]; then
+            echo "No non-formatted file."
+        else
+            echo "Non-formatted files:"
+            git --no-pager diff
+            exit 1
+        fi
     - name: Install dependencies
       run: |
         cabal update
