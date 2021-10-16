@@ -1,0 +1,7 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:notion-cli"
+
+    - path: "app/Main.hs"
+      component: "notion-cli:exe:notion-cli"
