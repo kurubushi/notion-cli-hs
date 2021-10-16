@@ -1,0 +1,69 @@
+cabal-version:      2.4
+name:               notion-cli
+version:            0.1.0.0
+synopsis:
+
+-- A longer description of the package.
+-- description:
+homepage:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+license:            MIT
+license-file:       LICENSE
+author:             kurubushi
+maintainer:         krbshi@gmail.com
+
+-- A copyright notice.
+-- copyright:
+category:           Web
+extra-source-files: CHANGELOG.md
+
+library
+  exposed-modules:
+    Notion.GetUploadFileUrl
+    Notion.GetUserAnalyticsSettings
+    Notion.SubmitTransaction
+    S3.Put
+
+  -- Modules included in this library but not exported.
+  -- other-modules:
+  other-extensions:
+    DeriveGeneric
+    OverloadedStrings
+
+  build-depends:
+    , aeson            >=1.5     && <2
+    , aeson-casing     ^>=0.2.0
+    , base             >=4.7     && <5
+    , bytestring       ^>=0.10.12
+    , filepath         >=1.4     && <2
+    , http-conduit     >=2.3     && <3
+    , mime-types       ^>=0.1.0
+    , safe-exceptions  ^>=0.1.7
+    , text             >=1.2     && <2
+    , unix-time        ^>=0.4.7
+    , uuid             >=1.3     && <2
+
+  hs-source-dirs:   src
+  default-language: Haskell2010
+
+executable notion-cli
+  main-is:          Main.hs
+
+  -- Modules included in this executable, other than Main.
+  -- other-modules:
+  other-extensions:
+    DeriveGeneric
+    OverloadedStrings
+
+  build-depends:
+    , base                  >=4.7    && <5
+    , ConfigFile            >=1.1    && <2
+    , directory             >=1.3    && <2
+    , filepath              >=1.4    && <2
+    , notion-cli
+    , optparse-applicative  ^>=0.16.1
+
+  hs-source-dirs:   app
+  default-language: Haskell2010
