@@ -2,11 +2,18 @@
 
 ## install
 
+Build the binary.
+
 ```bash
 git clone git@github.com:kurubushi/notion-cli-hs.git
 cd notion-cli-hs
-stack install
-export PATH=$PATH:$HOME/.local/bin/
+make notion-cli
+```
+
+Install the created binary `./notion-cli`. For instance:
+
+```bash
+sudo install -Dm755 notion-cli /usr/local/bin
 ```
 
 ## setup
@@ -25,7 +32,7 @@ token_v2 = xxxxxxxxxx
 Obtain the UUID of a database from Network logs on user's web browser.
 When a user accesses a database page, a JSON data is sent to the server.
 
-POST https://www.notion.so/api/v3/queryCollection with 
+For instance, a POST packet to https://www.notion.so/api/v3/queryCollection with 
 
 ```json
 {
@@ -42,12 +49,12 @@ POST https://www.notion.so/api/v3/queryCollection with
 }
 ```
 
-The `collectionId` is the UUID of the database.
+is found. The `collectionId` is the UUID of the database.
 
 Upload files to the database:
 
 ```bash
-notion-cli-exe upload --database-uuid xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --record-title pinogon pino.jpg gongon.jpg 
+notion-cli upload --database-uuid xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --record-title pinogon pino.jpg gongon.jpg 
 ```
 
 The command inserts a new record "pinogon" to the database and appends pino.jpg and gongon.jpg to the record page.
@@ -58,7 +65,7 @@ Check your database :+1:
 Upload files to the page https://www.notion.so/user-name/page_title-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ```bash
-notion-cli-exe upload --page-url https://www.notion.so/user-name/page_title-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx pino.jpg gongon.jpg 
+notion-cli upload --page-url https://www.notion.so/user-name/page_title-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx pino.jpg gongon.jpg 
 ```
 
 The command appends pino.jpg and gongon.jpg to the page.
@@ -68,7 +75,7 @@ The command appends pino.jpg and gongon.jpg to the page.
 Upload a file to S3:
 
 ```bash
-notion-cli-exe s3upload gongon.jpg
+notion-cli s3upload gongon.jpg
 ```
 
 response:
