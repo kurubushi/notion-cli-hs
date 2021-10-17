@@ -219,3 +219,46 @@ appendS3File token pageID url = do
            $ req
   _ <- httpNoBody req'
   return blockID
+
+appendText :: (MonadIO m, MonadThrow m) => Token -> UUID -> String -> m UUID
+appendText token pageID text = do
+  blockID <- genUUID
+  userID <- getUserID token
+  unixTime <- getUnixTime
+  let setOp = defaultOperation
+              { _opId = blockID
+              , _opCommand = "set"
+              , _opArgs = defaultArgumentsObj
+                          { _argId = Just blockID
+                          , _argType = Just "text"
+                          , _argVersion = Just 1
+                          , _argParentId = Just pageID
+                          , _argParentTable = Just "block"
+                          , _argAlive = Just True
+                          }
+              }
+  let listOp = defaultOperation
+               { _opId = pageID
+               , _opCommand = "listAfter"
+               , _opPath = ["content"]
+               , _opArgs = defaultArgumentsObj { _argId = Just blockID }
+               }
+  let updateOp = defaultOperation
+                 { _opId = blockID
+                 , _opCommand = "set"
+                 , _opPath = ["properties", "title"]
+                 , _opArgs = ArgumentsList [[text]]
+                 }
+  let body = ReqBody { _reqOperations = [ setOp
+                                        , listOp
+                                        , updateOp
+                                        ]
+                                        ++ defaultProps blockID userID unixTime
+                     }
+  req <- parseRequest endpoint
+  let req' = setRequestMethod "POST"
+           . setRequestHeader "Cookie" [BC.pack $ "token_v2=" ++ token]
+           . setRequestBodyJSON body
+           $ req
+  _ <- httpNoBody req'
+  return blockID
