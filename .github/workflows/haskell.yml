@@ -32,7 +32,7 @@ jobs:
     - name: Install formatters
       run: |
         cabal update
-        cabal install cabal-fmt stylish-haskell
+        cabal install --overwrite-policy=always cabal-fmt stylish-haskell
         echo "$HOME/.cabal/bin" >> $GITHUB_PATH
     - name: Check format
       run: |
