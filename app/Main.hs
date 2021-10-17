@@ -69,6 +69,7 @@ data Options = S3UploadOpts { s3UploadConfigFilePath :: Maybe FilePath
              | UploadOpts { uploadUUID           :: ParentUUID
                           , uploadRecordTitle    :: Maybe String
                           , uploadConfigFilePath :: Maybe FilePath
+                          , uploadDesc           :: Maybe String
                           , uploadFilePathes     :: [FilePath]
                           }
              | AppendTextOpts { appendTextUUID           :: ParentUUID
@@ -95,6 +96,7 @@ uploadOptions = UploadOpts
                 <$> parentUUID
                 <*> (optional . strOption) (long "record-title" <> metavar "TITLE" <> help "Set the Title of a created new record")
                 <*> (optional . strOption) (long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
+                <*> (optional . strOption) (long "description" <> metavar "TEXT" <> help "Set a description of files")
                 <*> (some . argument str) (metavar "FILES" <> help "Select files to upload")
 
 appendTextOptions :: Parser Options
@@ -139,6 +141,8 @@ exec env UploadOpts {..} = do
                     appendRecord token uuid title
                   PageUUID uuid -> return uuid
                   PageURL url -> maybe (die "the page URL is invalid") return (getUUID url)
+
+  forM_ uploadDesc (appendText token parentUUID)
 
   forM_ uploadFilePathes $ \filePath -> do
     s3URLs <- getUploadFileUrl token filePath
