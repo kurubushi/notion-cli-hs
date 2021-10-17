@@ -9,7 +9,8 @@ import           Data.ConfigFile          (ConfigParser (..), emptyCP, get,
 import           Data.Maybe               (fromMaybe)
 import           Notion.GetUploadFileUrl  (getS3SignedPutURL, getS3URL,
                                            getUploadFileUrl)
-import           Notion.SubmitTransaction (appendRecord, appendS3File)
+import           Notion.SubmitTransaction (appendRecord, appendS3File,
+                                           appendText)
 import           Options.Applicative
 import           S3.Put                   (putFile)
 import           System.Directory         (getHomeDirectory)
@@ -70,6 +71,11 @@ data Options = S3UploadOpts { s3UploadConfigFilePath :: Maybe FilePath
                           , uploadConfigFilePath :: Maybe FilePath
                           , uploadFilePathes     :: [FilePath]
                           }
+             | AppendTextOpts { appendTextUUID           :: ParentUUID
+                              , appendTextRecordTitle    :: Maybe String
+                              , appendTextConfigFilePath :: Maybe FilePath
+                              , appendTextContent        :: String
+                              }
   deriving (Show, Eq)
 
 s3UploadOptions :: Parser Options
@@ -91,10 +97,18 @@ uploadOptions = UploadOpts
                 <*> (optional . strOption) (long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
                 <*> (some . argument str) (metavar "FILES" <> help "Select files to upload")
 
+appendTextOptions :: Parser Options
+appendTextOptions = AppendTextOpts
+                    <$> parentUUID
+                    <*> (optional . strOption) (long "record-title" <> metavar "TITLE" <> help "Set the Title of a created new record")
+                    <*> (optional . strOption) (long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
+                    <*> argument str (metavar "TEXT" <> help "Text to upload")
+
 options :: Parser Options
 options = subparser
             (  command "s3upload" (withInfo s3UploadOptions "s3upload" "Upload a file to S3")
             <> command "upload" (withInfo uploadOptions "upload" "Upload a file to a database")
+            <> command "append-text" (withInfo appendTextOptions "append-text" "Append a text to a page")
             )
 
 withInfo :: Parser a -> String -> String -> ParserInfo a
@@ -134,6 +148,21 @@ exec env UploadOpts {..} = do
     _ <- appendS3File token parentUUID url
     putStrLn $ "File: " ++ filePath
     putStrLn $ "S3URL: " ++ show url
+
+exec env AppendTextOpts {..} = do
+  conf <- getConfig $ fromMaybe (defaultConfigFile . homeDir $ env) appendTextConfigFilePath
+  let token = tokenV2 conf
+
+  parentUUID <- case appendTextUUID of
+                  DBUUID uuid -> do
+                    let title = fromMaybe "" appendTextRecordTitle
+                    appendRecord token uuid title
+                  PageUUID uuid -> return uuid
+                  PageURL url -> maybe (die "the page URL is invalid") return (getUUID url)
+
+  uuid <- appendText token parentUUID appendTextContent
+  putStrLn $ "UUID: " ++ uuid
+  return ()
 
 main :: IO ()
 main = do

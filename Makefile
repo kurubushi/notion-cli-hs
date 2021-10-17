@@ -16,4 +16,8 @@ src-fmt: $(APP_HS_FILES) $(SRC_HS_FILES)
 notion-cli: $(APP_HS_FILES) $(SRC_HS_FILES)
 	cabal update
 	cabal build
-	cabal install --installdir=. --install-method=copy exe:notion-cli
+	cabal install \
+		--installdir=. \
+		--install-method=copy \
+		--overwrite-policy=always \
+		exe:notion-cli
