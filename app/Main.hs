@@ -72,6 +72,7 @@ data Options = S3UploadOpts { s3UploadConfigFilePath :: Maybe FilePath
                           , uploadFilePathes     :: [FilePath]
                           }
              | AppendTextOpts { appendTextUUID           :: ParentUUID
+                              , appendTextRecordTitle    :: Maybe String
                               , appendTextConfigFilePath :: Maybe FilePath
                               , appendTextContent        :: String
                               }
@@ -99,6 +100,7 @@ uploadOptions = UploadOpts
 appendTextOptions :: Parser Options
 appendTextOptions = AppendTextOpts
                     <$> parentUUID
+                    <*> (optional . strOption) (long "record-title" <> metavar "TITLE" <> help "Set the Title of a created new record")
                     <*> (optional . strOption) (long "config-file" <> metavar "FILE" <> help "Set an alternative config file")
                     <*> argument str (metavar "TEXT" <> help "Text to upload")
 
@@ -152,7 +154,9 @@ exec env AppendTextOpts {..} = do
   let token = tokenV2 conf
 
   parentUUID <- case appendTextUUID of
-                  DBUUID uuid -> die "DB UUID is invalid"
+                  DBUUID uuid -> do
+                    let title = fromMaybe "" appendTextRecordTitle
+                    appendRecord token uuid title
                   PageUUID uuid -> return uuid
                   PageURL url -> maybe (die "the page URL is invalid") return (getUUID url)
 
