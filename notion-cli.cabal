@@ -24,6 +24,7 @@ library
     Notion.GetUploadFileUrl
     Notion.GetUserAnalyticsSettings
     Notion.SubmitTransaction
+    Notion.SubmitTransaction.Operation
     S3.Put
 
   -- Modules included in this library but not exported.
