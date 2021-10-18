@@ -2,7 +2,15 @@
 
 ## install
 
-Build the binary.
+Install GHC and Cabal to build this tool. If you use [GHCup](https://www.haskell.org/ghcup/), you can install with:
+
+```bash
+ghcup install       # to install GHC
+ghcup install-cabal # to install Cabal
+export PATH=$HOME/.ghcup/bin:$PATH
+```
+
+Build a binary.
 
 ```bash
 git clone git@github.com:kurubushi/notion-cli-hs.git
@@ -14,6 +22,7 @@ Install the created binary `./notion-cli`. For instance:
 
 ```bash
 sudo install -Dm755 notion-cli /usr/local/bin
+export PATH=/usr/local/bin:$PATH
 ```
 
 ## setup
