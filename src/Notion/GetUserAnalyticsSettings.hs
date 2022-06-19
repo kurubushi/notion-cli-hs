@@ -34,11 +34,15 @@ instance FromJSON ResBody where
 endpoint :: URL
 endpoint = "https://www.notion.so/api/v3/getUserAnalyticsSettings"
 
+userAgent :: String
+userAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36"
+
 getUserID :: (MonadThrow m, MonadIO m) => Token -> m UUID
 getUserID token = do
   req <- parseRequest endpoint
   let req' = setRequestMethod "POST"
            . setRequestHeader "Cookie" [BC.pack $ "token_v2=" ++ token]
+           . setRequestHeader "User-Agent" [BC.pack userAgent]
            . setRequestBodyJSON defaultReqBody
            $ req
   res <- httpJSON req'

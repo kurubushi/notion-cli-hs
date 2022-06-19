@@ -55,11 +55,15 @@ getS3SignedPutURL = T.unpack . _resSignedPutUrl
 endpoint :: String
 endpoint = "https://www.notion.so/api/v3/getUploadFileUrl"
 
+userAgent :: String
+userAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36"
+
 getUploadFileUrl :: (MonadThrow m, MonadIO m) => String -> String -> m ResBody
 getUploadFileUrl token filePath = do
   req <- parseRequest endpoint
   let req' = setRequestMethod "POST"
            . setRequestHeader "Cookie" [BC.pack $ "token_v2=" ++ token]
+           . setRequestHeader "User-Agent" [BC.pack userAgent]
            . setRequestBodyJSON (simpleRequestBody filePath)
            $ req
   res <- httpJSON req'

@@ -34,6 +34,9 @@ instance ToJSON ReqBody where
 endpoint :: URL
 endpoint = "https://www.notion.so/api/v3/submitTransaction"
 
+userAgent :: String
+userAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36"
+
 genUUID :: MonadIO m => m UUID
 genUUID = UUID.toString <$> liftIO UUIDv4.nextRandom
 
@@ -49,6 +52,7 @@ post token ops = do
   req <- parseRequest endpoint
   let req' = setRequestMethod "POST"
            . setRequestHeader "Cookie" [BC.pack $ "token_v2=" ++ token]
+           . setRequestHeader "User-Agent" [BC.pack userAgent]
            . setRequestBodyJSON body
            $ req
   httpNoBody req'
