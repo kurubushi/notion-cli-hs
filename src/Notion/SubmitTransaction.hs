@@ -12,9 +12,9 @@ import           Data.Aeson                         (Options (..),
 import           Data.Aeson.Casing                  (aesonDrop, snakeCase)
 import qualified Data.ByteString.Char8              as BC
 import qualified Data.Text                          as T
+import qualified Data.UnixTime                      as UT
 import qualified Data.UUID                          as UUID
 import qualified Data.UUID.V4                       as UUIDv4
-import qualified Data.UnixTime                      as UT
 import           GHC.Generics                       (Generic)
 import           Network.HTTP.Simple
 import           Network.Mime                       (defaultMimeLookup)
