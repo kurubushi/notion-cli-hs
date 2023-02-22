@@ -2,11 +2,9 @@
 
 ## install
 
-Install GHC and Cabal to build this tool. If you use [GHCup](https://www.haskell.org/ghcup/), you can install with:
+Install [GHCup](https://www.haskell.org/ghcup/) and set PATH:
 
 ```bash
-ghcup install       # to install GHC
-ghcup install-cabal # to install Cabal
 export PATH=$HOME/.ghcup/bin:$PATH
 ```
 
