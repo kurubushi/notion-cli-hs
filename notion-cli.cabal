@@ -34,10 +34,10 @@ library
     OverloadedStrings
 
   build-depends:
-    , aeson            >=1.5     && <2
+    , aeson            >=2       && <3
     , aeson-casing     ^>=0.2.0
     , base             >=4.7     && <5
-    , bytestring       ^>=0.10.12
+    , bytestring       ^>=0.11.4
     , filepath         >=1.4     && <2
     , http-conduit     >=2.3     && <3
     , mime-types       ^>=0.1.0
